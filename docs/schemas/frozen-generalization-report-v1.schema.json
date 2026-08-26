@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:frozen-generalization-report:v1",
+  "title": "Phase 10 no-retraining generalization report",
+  "type": "object",
+  "required": [
+    "schema_version", "training_design", "selected_layer", "source_cross_validation",
+    "layer_cross_validation", "suites", "ood_level_summary", "paired_semantic_stability",
+    "text_shortcut_baselines", "gate", "interpretation_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.phase10-frozen-generalization.v1"},
+    "training_design": {"type": "object"},
+    "selected_layer": {"type": "integer", "minimum": 0},
+    "source_cross_validation": {"type": "object"},
+    "layer_cross_validation": {"type": "array"},
+    "suites": {"type": "object"},
+    "ood_level_summary": {"type": "object"},
+    "paired_semantic_stability": {"type": "object"},
+    "text_shortcut_baselines": {"type": "object"},
+    "gate": {"type": "object"},
+    "interpretation_boundary": {"type": "string"}
+  }
+}

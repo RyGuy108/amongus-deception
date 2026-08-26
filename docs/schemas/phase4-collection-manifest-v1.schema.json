@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:phase4-collection-manifest:v1",
+  "title": "Phase 4 frozen-context reliability collection manifest",
+  "type": "object",
+  "required": [
+    "schema_version", "experiment_id", "created_at", "model", "protocol",
+    "gate_target", "environment", "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.phase4-collection-manifest.v1"},
+    "experiment_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "model": {
+      "type": "object",
+      "required": ["identifier", "config_sha256"]
+    },
+    "protocol": {
+      "type": "object",
+      "required": [
+        "frozen_contexts", "roles", "statuses", "repeats_per_variant",
+        "prompt_variants", "temperature", "behavioral_fork",
+        "behavioral_format_retries",
+        "scenario_start_this_run", "scenario_stop_exclusive", "seed",
+        "sampling_reproducibility", "local_batch_size", "max_new_tokens",
+        "elicitation_response_schema"
+      ]
+    },
+    "gate_target": {"type": "object"},
+    "environment": {"type": "object"},
+    "artifacts": {"type": "object"}
+  }
+}

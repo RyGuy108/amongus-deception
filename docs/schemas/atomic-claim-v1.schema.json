@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:atomic-claim:v1",
+  "title": "AmongUs atomic grounded claim",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "claim_id",
+    "claim_type",
+    "subject",
+    "predicate",
+    "object",
+    "location",
+    "polarity",
+    "temporal_scope",
+    "source_text",
+    "character_span",
+    "extractor",
+    "objective_truth",
+    "speaker_support",
+    "preliminary_label",
+    "verifier",
+    "belief_alignment"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.atomic-claim.v1"},
+    "claim_id": {"type": "string"},
+    "claim_type": {"enum": ["event", "location", "role", "assessment", "observation", "status", "intent"]},
+    "subject": {"type": ["string", "null"]},
+    "predicate": {"type": "string"},
+    "object": {"type": ["string", "null"]},
+    "location": {"type": ["string", "null"]},
+    "polarity": {"enum": ["asserted", "negated"]},
+    "temporal_scope": {"enum": ["current", "past", "future", "unspecified"]},
+    "source_text": {"type": "string"},
+    "character_span": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer"}},
+    "extractor": {"type": "string"},
+    "objective_truth": {"$ref": "#/$defs/evidenceResult"},
+    "speaker_support": {"$ref": "#/$defs/evidenceResult"},
+    "preliminary_label": {"type": "string"},
+    "verifier": {"type": "string"},
+    "belief_alignment": {"type": "object"}
+  },
+  "$defs": {
+    "evidenceResult": {
+      "type": "object",
+      "required": ["status", "evidence"],
+      "properties": {
+        "status": {"type": "string"},
+        "evidence": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

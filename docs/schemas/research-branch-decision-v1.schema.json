@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:research-branch-decision:v1",
+  "title": "Phase 11 adaptive research branch decision",
+  "type": "object",
+  "required": [
+    "schema_version", "primary_branch", "primary_branch_name", "ranking", "branches",
+    "adaptive_plan", "decision_inputs", "branch_execution", "gate", "interpretation_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.phase11-branch-decision.v1"},
+    "primary_branch": {"enum": ["A", "B", "C", "D"]},
+    "primary_branch_name": {"type": "string"},
+    "ranking": {"type": "array", "items": {"enum": ["A", "B", "C", "D"]}},
+    "branches": {"type": "object"},
+    "adaptive_plan": {"type": "array", "items": {"type": "string"}},
+    "decision_inputs": {"type": "object"},
+    "branch_execution": {"type": "object"},
+    "gate": {"type": "object"},
+    "interpretation_boundary": {"type": "string"}
+  }
+}

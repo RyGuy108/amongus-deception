@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:counterfactual-influence:v1",
+  "title": "Listener response under controlled statement interventions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "experiment_id",
+    "influence_id",
+    "game_index",
+    "phase",
+    "round",
+    "speaker",
+    "model_metadata",
+    "selection",
+    "context_fingerprint",
+    "original_atomic_claims",
+    "interventions",
+    "intervention_design",
+    "listeners",
+    "immediate_vote_proxy",
+    "causal_contrasts",
+    "deceptive_influence_scores",
+    "outcome_replay"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.counterfactual-influence.v1"},
+    "record_type": {"const": "counterfactual_influence"},
+    "experiment_id": {"type": "string"},
+    "influence_id": {"type": "string"},
+    "game_index": {"type": "integer", "minimum": 0},
+    "phase": {"const": "meeting"},
+    "round": {"type": ["integer", "null"]},
+    "speaker": {"type": "object"},
+    "model_metadata": {"type": "object"},
+    "selection": {
+      "type": "object",
+      "required": ["important_labels", "claim_ids", "claim_subjects", "automatic_candidate_only"]
+    },
+    "context_fingerprint": {"type": "string"},
+    "original_atomic_claims": {"type": "object"},
+    "interventions": {"type": "object"},
+    "intervention_design": {"type": "object"},
+    "listeners": {"type": "array"},
+    "immediate_vote_proxy": {"type": "object"},
+    "causal_contrasts": {"type": "object"},
+    "deceptive_influence_scores": {"type": "object"},
+    "outcome_replay": {"type": "object"}
+  }
+}

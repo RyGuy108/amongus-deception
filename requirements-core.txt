@@ -1,0 +1,8 @@
+# Lightweight, CPU-safe environment for the game engine, baseline analysis, and tests.
+# The upstream requirements.txt also contains Linux/CUDA packages for activation work.
+aiohttp==3.11.11
+networkx==3.3
+numpy==2.0.2
+python-dotenv==1.0.1
+requests==2.32.3
+pytest==8.3.4

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:incentive-outcomes:v1",
+  "title": "Scored incentive outcomes for one game",
+  "type": "object",
+  "required": ["schema_version", "game_index", "winner_role", "results"],
+  "properties": {
+    "schema_version": {"const": "amongus.incentive-outcomes.v1"},
+    "game_index": {"type": "integer", "minimum": 0},
+    "winner_role": {"enum": ["Crewmate", "Impostor"]},
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "player",
+          "role",
+          "condition",
+          "target_player",
+          "target_role_ground_truth",
+          "primary_success",
+          "secondary_score",
+          "total_score",
+          "evidence"
+        ]
+      }
+    }
+  }
+}

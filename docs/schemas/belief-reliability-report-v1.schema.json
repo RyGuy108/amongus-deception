@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:belief-reliability-report:v1",
+  "title": "Aggregate Phase 4 belief reliability report",
+  "type": "object",
+  "required": [
+    "schema_version", "record_count", "frozen_context_count",
+    "sample_validity", "stability_branches", "stability_rate",
+    "method_agreement_contexts", "method_branches",
+    "method_disagreement_rate", "method_comparison_note", "calibration",
+    "decision_gate"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.belief-reliability-report.v1"},
+    "record_count": {"type": "integer", "minimum": 0},
+    "frozen_context_count": {"type": "integer", "minimum": 0},
+    "sample_validity": {"type": "object"},
+    "stability_branches": {"type": "object"},
+    "stability_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "method_agreement_contexts": {"type": "integer", "minimum": 0},
+    "method_branches": {"type": "object"},
+    "method_disagreement_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "method_comparison_note": {"type": "string"},
+    "calibration": {"type": "object"},
+    "decision_gate": {"type": "object"}
+  }
+}

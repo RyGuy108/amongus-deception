@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:phase4-controlled-context:v1",
+  "title": "One Phase 4 frozen-context reliability record",
+  "type": "object",
+  "required": [
+    "schema_version", "experiment_id", "context_id", "scenario_index",
+    "game_index", "speaker", "model_metadata", "state_source",
+    "world_state_before", "observation", "private_belief",
+    "measurement_elapsed_seconds"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.phase4-controlled-context.v1"},
+    "experiment_id": {"type": "string"},
+    "context_id": {"type": "string"},
+    "scenario_index": {"type": "integer", "minimum": 0},
+    "game_index": {"type": "integer", "minimum": 1},
+    "speaker": {"type": "object"},
+    "model_metadata": {"type": "object"},
+    "state_source": {"const": "controlled_schema_scenario"},
+    "world_state_before": {"type": "object"},
+    "observation": {"type": "object"},
+    "private_belief": {"type": "object"},
+    "measurement_elapsed_seconds": {"type": "number", "minimum": 0}
+  }
+}

@@ -1,0 +1,8 @@
+# Optional local open-weight collection and Phase 9 analysis stack.
+-r requirements-core.txt
+torch==2.13.0
+transformers==5.15.1
+accelerate==1.14.0
+safetensors==0.8.0
+sentencepiece==0.2.2
+scikit-learn==1.9.0

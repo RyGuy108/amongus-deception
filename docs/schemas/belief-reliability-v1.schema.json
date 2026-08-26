@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:belief-reliability:v1",
+  "title": "Frozen-context belief reliability analysis",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "sample_count",
+    "valid_count",
+    "prompt_variants",
+    "overall",
+    "cross_variant_mean_l1",
+    "thresholds",
+    "gate",
+    "consensus_values"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.belief-reliability.v1"},
+    "sample_count": {"type": "integer", "minimum": 0},
+    "valid_count": {"type": "integer", "minimum": 0},
+    "prompt_variants": {"type": "object"},
+    "overall": {"type": "object"},
+    "cross_variant_mean_l1": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "thresholds": {"type": "object"},
+    "gate": {
+      "type": "object",
+      "required": ["branch", "passed", "reasons"],
+      "properties": {
+        "branch": {"enum": ["A_stable_self_report", "B_unstable_self_report", "insufficient_data"]},
+        "passed": {"type": ["boolean", "null"]},
+        "reasons": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "consensus_values": {
+      "type": "object",
+      "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+    }
+  }
+}

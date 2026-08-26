@@ -1,0 +1,11 @@
+{
+  "experiment_id": "phase10-local-qwen-v1",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "seed": 20260820,
+  "train_groups": 12,
+  "test_groups": 6,
+  "primary_pooling_site": "response_mean",
+  "layer_selection": "source-only grouped cross-validation",
+  "threshold": 0.5,
+  "ood_retraining": false
+}

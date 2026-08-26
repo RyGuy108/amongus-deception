@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:belief-measurement:v1",
+  "title": "AmongUs triangulated private belief measurement",
+  "type": "object",
+  "required": ["schema_version", "status", "measurements", "values", "triangulation", "beliefs_about_others"],
+  "properties": {
+    "schema_version": {"const": "amongus.belief-measurement.v1"},
+    "status": {"enum": ["collected", "partial", "unavailable"]},
+    "measurements": {"type": "object"},
+    "values": {
+      "type": "object",
+      "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+    },
+    "triangulation": {"type": "object"},
+    "beliefs_about_others": {"type": "object"}
+  }
+}

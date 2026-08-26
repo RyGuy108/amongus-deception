@@ -5,6 +5,7 @@ import os
 import sys
 import asyncio
 import random
+import numpy as np
 
 from typing import Optional, List
 
@@ -18,6 +19,13 @@ from amongagents.envs.configs.agent_config import ALL_LLM
 from amongagents.envs.configs.game_config import FIVE_MEMBER_GAME, SEVEN_MEMBER_GAME, FIVE_MEMBER_GAME
 from amongagents.envs.configs.map_config import map_coords
 from amongagents.envs.game import AmongUs
+from amongagents.envs.incentives import build_incentive_scheduler
+from amongagents.experiments import (
+    CounterfactualInfluenceExperiment,
+    MatchedIncentiveExperiment,
+)
+from amongagents.instrumentation import JsonlTurnRecorder
+from amongagents.measurement import build_belief_probe
 from amongagents.UI.MapUI import MapUI
 from dotenv import load_dotenv
 
@@ -70,10 +78,54 @@ ARGS = {
         "CREWMATE_LLM_CHOICES": BIG_LIST_OF_MODELS,
     },
     "UI": False,
+    "seed": None,
+    "belief_probe_mode": "none",
+    "belief_reliability_repeats": 20,
+    "belief_reliability_temperature": 0.7,
+    "incentive_plan": "role_default",
+    "matched_incentive_forks": False,
+    "matched_incentive_repeats": 1,
+    "matched_incentive_temperature": 0.0,
+    "counterfactual_influence": False,
+    "counterfactual_max_listeners": 3,
+    "counterfactual_temperature": 0.0,
 }
 
 async def multiple_games(experiment_name=None, num_games=1, rate_limit=50):
     experiment_name = setup_experiment(experiment_name, LOGS_PATH, DATE, COMMIT_HASH, ARGS)
+    recorder = JsonlTurnRecorder(
+        os.path.join(os.environ["EXPERIMENT_PATH"], "turn-records.jsonl"),
+        experiment_id=experiment_name,
+    )
+    belief_probe = build_belief_probe(
+        ARGS["belief_probe_mode"],
+        reliability_repeats=ARGS["belief_reliability_repeats"],
+        reliability_temperature=ARGS["belief_reliability_temperature"],
+    )
+    matched_incentive_runner = (
+        MatchedIncentiveExperiment(
+            os.path.join(
+                os.environ["EXPERIMENT_PATH"], "matched-incentive-trials.jsonl"
+            ),
+            experiment_id=experiment_name,
+            repeats=ARGS["matched_incentive_repeats"],
+            temperature=ARGS["matched_incentive_temperature"],
+        )
+        if ARGS["matched_incentive_forks"]
+        else None
+    )
+    counterfactual_runner = (
+        CounterfactualInfluenceExperiment(
+            os.path.join(
+                os.environ["EXPERIMENT_PATH"], "counterfactual-influence.jsonl"
+            ),
+            experiment_id=experiment_name,
+            max_listeners=ARGS["counterfactual_max_listeners"],
+            temperature=ARGS["counterfactual_temperature"],
+        )
+        if ARGS["counterfactual_influence"]
+        else None
+    )
     ui = MapUI(BLANK_MAP_IMAGE, map_coords, debug=False) if ARGS["UI"] else None
     with open(os.path.join(os.environ["EXPERIMENT_PATH"], "experiment-details.txt"), "a") as experiment_file:
         experiment_file.write(f"\nExperiment args: {ARGS}\n")
@@ -98,6 +150,13 @@ async def multiple_games(experiment_name=None, num_games=1, rate_limit=50):
                 agent_config=game_config,
                 UI=ui,
                 game_index=game_index,
+                recorder=recorder,
+                belief_probe=belief_probe,
+                incentive_scheduler=build_incentive_scheduler(
+                    ARGS["incentive_plan"], ARGS["seed"]
+                ),
+                matched_incentive_runner=matched_incentive_runner,
+                counterfactual_runner=counterfactual_runner,
             )
             await game.run_game()
 
@@ -113,7 +172,90 @@ if __name__ == "__main__":
     parser.add_argument("--impostor_llm", type=str, default=None, help="Impostor LLM model.")
     parser.add_argument("--streamlit", type=bool, default=False, help="Streamlit.")
     parser.add_argument("--tournament_style", type=str, default="random", help="random or 1on1.")
+    parser.add_argument("--seed", type=int, default=None, help="Seed Python and NumPy randomness.")
+    parser.add_argument(
+        "--belief-probe",
+        choices=[
+            "none",
+            "elicited-meeting",
+            "triangulated-meeting",
+            "triangulated-all",
+            "reliability-meeting",
+        ],
+        default="none",
+        help="Private belief measurement mode; non-none modes add model calls.",
+    )
+    parser.add_argument(
+        "--belief-reliability-repeats",
+        type=int,
+        default=20,
+        help="Repeated samples per paraphrase in the opt-in Phase 4 reliability probe.",
+    )
+    parser.add_argument(
+        "--belief-reliability-temperature",
+        type=float,
+        default=0.7,
+        help="Sampling temperature for Phase 4 repeated belief elicitation.",
+    )
+    parser.add_argument(
+        "--incentive-plan",
+        choices=[
+            "role_default",
+            "balanced_factorial",
+            "target_ejection",
+            "target_protection",
+            "evidence_accuracy",
+        ],
+        default="role_default",
+        help="Private scored incentive assignment; balanced_factorial crosses role and incentive.",
+    )
+    parser.add_argument(
+        "--matched-incentive-forks",
+        action="store_true",
+        help="Run Phase 6 matched utterance forks during eligible meeting turns.",
+    )
+    parser.add_argument(
+        "--matched-incentive-repeats",
+        type=int,
+        default=1,
+        help="Samples per incentive condition for each frozen Phase 6 state.",
+    )
+    parser.add_argument(
+        "--matched-incentive-temperature",
+        type=float,
+        default=0.0,
+        help="Sampling temperature for Phase 6 matched forks.",
+    )
+    parser.add_argument(
+        "--counterfactual-influence",
+        action="store_true",
+        help="Run Phase 7 listener-response interventions for candidate falsehoods.",
+    )
+    parser.add_argument(
+        "--counterfactual-max-listeners",
+        type=int,
+        default=3,
+        help="Maximum frozen listeners measured per eligible statement.",
+    )
+    parser.add_argument(
+        "--counterfactual-temperature",
+        type=float,
+        default=0.0,
+        help="Sampling temperature for Phase 7 listener-response probes.",
+    )
     args = parser.parse_args()
+    if args.belief_reliability_repeats < 2:
+        parser.error("--belief-reliability-repeats must be at least 2")
+    if args.belief_reliability_temperature < 0:
+        parser.error("--belief-reliability-temperature must be non-negative")
+    if args.matched_incentive_repeats < 1:
+        parser.error("--matched-incentive-repeats must be positive")
+    if args.matched_incentive_temperature < 0:
+        parser.error("--matched-incentive-temperature must be non-negative")
+    if args.counterfactual_max_listeners < 1:
+        parser.error("--counterfactual-max-listeners must be positive")
+    if args.counterfactual_temperature < 0:
+        parser.error("--counterfactual-temperature must be non-negative")
     if args.num_games > 1 or args.display_ui == False:
         ARGS["UI"] = False
     if args.crewmate_llm:
@@ -121,4 +263,18 @@ if __name__ == "__main__":
     if args.impostor_llm:
         ARGS["agent_config"]["IMPOSTOR_LLM_CHOICES"] = [args.impostor_llm]
     ARGS["tournament_style"] = args.tournament_style
+    ARGS["seed"] = args.seed
+    ARGS["belief_probe_mode"] = args.belief_probe
+    ARGS["belief_reliability_repeats"] = args.belief_reliability_repeats
+    ARGS["belief_reliability_temperature"] = args.belief_reliability_temperature
+    ARGS["incentive_plan"] = args.incentive_plan
+    ARGS["matched_incentive_forks"] = args.matched_incentive_forks
+    ARGS["matched_incentive_repeats"] = args.matched_incentive_repeats
+    ARGS["matched_incentive_temperature"] = args.matched_incentive_temperature
+    ARGS["counterfactual_influence"] = args.counterfactual_influence
+    ARGS["counterfactual_max_listeners"] = args.counterfactual_max_listeners
+    ARGS["counterfactual_temperature"] = args.counterfactual_temperature
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
     asyncio.run(multiple_games(experiment_name=args.name, num_games=args.num_games))

@@ -1,9 +1,13 @@
 import json
-from pandas import DataFrame, json_normalize
 from functools import reduce
-from typing import List, Dict
-import pandas as pd
+from typing import TYPE_CHECKING, List, Dict
 import os
+import platform
+import sys
+from datetime import datetime, timezone
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def setup_experiment(experiment_name, LOGS_PATH, DATE, COMMIT_HASH, DEFAULT_ARGS):
@@ -36,13 +40,52 @@ def setup_experiment(experiment_name, LOGS_PATH, DATE, COMMIT_HASH, DEFAULT_ARGS
         experiment_file.write(f"Path of executable file: {os.path.abspath(__file__)}\n")
         experiment_file.write(f"Experiment index: {next_index}\n")
 
+    manifest = {
+        "schema_version": "amongus.experiment-manifest.v1",
+        "experiment_id": experiment_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "repository_commit": COMMIT_HASH,
+        "experiment_index": next_index,
+        "arguments": DEFAULT_ARGS,
+        "runtime": {
+            "python": sys.version,
+            "platform": platform.platform(),
+        },
+        "credentials_present": {
+            "openrouter": bool(os.getenv("OPENROUTER_API_KEY")),
+            "openai": bool(os.getenv("OPENAI_API_KEY")),
+        },
+        "artifacts": {
+            "turn_records": "turn-records.jsonl",
+            "legacy_agent_log": "agent-logs.json",
+            "legacy_compact_agent_log": "agent-logs-compact.json",
+            "summary": "summary.json",
+            "incentive_outcomes": "incentive-outcomes.jsonl",
+            "belief_reliability_report": "belief-reliability-report.json",
+            "matched_incentive_trials": "matched-incentive-trials.jsonl",
+            "matched_incentive_report": "matched-incentive-report.json",
+            "counterfactual_influence": "counterfactual-influence.jsonl",
+            "counterfactual_influence_report": "counterfactual-influence-report.json",
+            "taxonomy_annotations": "phase8/taxonomy-annotations.jsonl",
+            "taxonomy_report": "phase8/taxonomy-report.json",
+            "taxonomy_human_validation": "phase8/taxonomy-human-validation.csv",
+            "mechanistic_probe_report": "phase9/mechanistic-probe-report.json",
+            "activations": "phase9/activations.npz",
+        },
+    }
+    with open(os.path.join(experiment_path, "experiment.json"), "w") as manifest_file:
+        json.dump(manifest, manifest_file, indent=2, sort_keys=True)
+        manifest_file.write("\n")
+
     os.environ["EXPERIMENT_PATH"] = experiment_path
     os.environ["STREAMLIT"] = str(DEFAULT_ARGS.get("streamlit", False))
     os.environ["EXPERIMENT_INDEX"] = str(next_index)
     
     return experiment_name
 
-def load_game_summary(filepath: str) -> pd.DataFrame:
+def load_game_summary(filepath: str) -> "DataFrame":
+    import pandas as pd
+
     # Read each line of the JSONL file
     with open(filepath, 'r') as file:
         data = [json.loads(line.strip()) for line in file]
@@ -65,7 +108,8 @@ def read_jsonl_as_json(file_path):
     with open(file_path, 'r') as file:
         return [json.loads(line) for line in file]
 
-def load_agent_logs_df(path: str) -> DataFrame:
+def load_agent_logs_df(path: str) -> "DataFrame":
+    from pandas import DataFrame, json_normalize
 
     df: DataFrame = json_normalize(read_jsonl_as_json(path))
     

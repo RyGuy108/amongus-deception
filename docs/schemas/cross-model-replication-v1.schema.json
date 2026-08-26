@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:cross-model-replication:v1",
+  "title": "Coordinate-compatible controlled cross-model replication",
+  "type": "object",
+  "required": [
+    "schema_version", "reference_model", "candidate_model", "sample_count",
+    "coordinate_design", "suites", "replicated_suite_count",
+    "replicated_suites", "gate", "interpretation_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.cross-model-replication.v1"},
+    "reference_model": {"type": ["string", "null"]},
+    "candidate_model": {"type": ["string", "null"]},
+    "sample_count": {"type": "integer", "minimum": 1},
+    "coordinate_design": {"type": "object"},
+    "suites": {"type": "object"},
+    "replicated_suite_count": {"type": "integer", "minimum": 0},
+    "replicated_suites": {"type": "array"},
+    "gate": {"type": "object"},
+    "interpretation_boundary": {"type": "string"}
+  }
+}

@@ -148,6 +148,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.model-cache/
 env/
 venv/
 ENV/

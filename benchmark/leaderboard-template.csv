@@ -1,0 +1,1 @@
+submission_id,model,detector,training_split,lexical_ba,scenario_ba,role_ba,incentive_ba,category_ba,game_ba,model_ba,domain_ba,mistaken_falsehood_fpr,truthful_fpr,input_tokens,output_tokens,mean_latency_seconds,communication_preservation,label_status,notes

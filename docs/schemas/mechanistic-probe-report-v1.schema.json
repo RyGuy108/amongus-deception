@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:mechanistic-probe-report:v1",
+  "title": "Phase 9 group-safe mechanistic probe report",
+  "type": "object",
+  "required": [
+    "schema_version", "sample_count", "layer_count", "hidden_size", "split_design",
+    "labels", "probes", "representation_similarity", "controlled_direction_ablations",
+    "interpretation_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.mechanistic-probe-report.v1"},
+    "sample_count": {"type": "integer"},
+    "layer_count": {"type": "integer"},
+    "hidden_size": {"type": "integer"},
+    "split_design": {"type": "string"},
+    "labels": {"type": "object"},
+    "probes": {"type": "object"},
+    "representation_similarity": {"type": "object"},
+    "controlled_direction_ablations": {"type": "object"},
+    "interpretation_boundary": {"type": "string"}
+  }
+}

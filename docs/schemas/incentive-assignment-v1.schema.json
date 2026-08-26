@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:incentive-assignment:v1",
+  "title": "Role-independent private incentive assignment",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "plan",
+    "condition",
+    "factorial_cell",
+    "primary_objective",
+    "secondary_objectives",
+    "target_player",
+    "target_role_ground_truth",
+    "reward_contract",
+    "private_instruction"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.incentive-assignment.v1"},
+    "plan": {"type": "string"},
+    "condition": {"enum": ["role_default", "target_ejection", "target_protection", "evidence_accuracy"]},
+    "factorial_cell": {"type": "object"},
+    "primary_objective": {"type": "string"},
+    "secondary_objectives": {"type": "array"},
+    "target_player": {"type": ["string", "null"]},
+    "target_role_ground_truth": {"type": ["string", "null"]},
+    "reward_contract": {"type": "object"},
+    "private_instruction": {"type": ["string", "null"]}
+  }
+}

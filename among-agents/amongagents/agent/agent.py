@@ -11,6 +11,7 @@ import numpy as np
 import requests
 import asyncio
 from amongagents.agent.neutral_prompts import *
+from amongagents.models import LocalTransformersRuntime, is_local_model
 
 # Set Flask environment variable to True by default
 if "FLASK" not in os.environ:
@@ -52,6 +53,7 @@ class LLMAgent(Agent):
             model = random.choice(agent_config["IMPOSTOR_LLM_CHOICES"])
 
         self.system_prompt = system_prompt
+        self.base_system_prompt = system_prompt
         self.model = model
         self.temperature = 0.7
         self.api_key = os.getenv("OPENROUTER_API_KEY")
@@ -159,13 +161,21 @@ class LLMAgent(Agent):
 
         print(".", end="", flush=True)
 
-    async def send_request(self, messages):
-        """Send a POST request to OpenRouter API with the provided messages."""
+    async def send_request(self, messages, temperature=None):
+        """Generate through a local Transformers model or the OpenRouter API."""
+        request_temperature = self.temperature if temperature is None else temperature
+        if is_local_model(self.model):
+            runtime = LocalTransformersRuntime(self.model)
+            return await runtime.generate(
+                messages,
+                temperature=request_temperature,
+            )
+
         headers = {"Authorization": f"Bearer {self.api_key}"}
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": self.temperature,
+            "temperature": request_temperature,
             "top_p": 1,
             "frequency_penalty": 0,
             "presence_penalty": 0,
@@ -263,9 +273,12 @@ class LLMAgent(Agent):
 class RandomAgent(Agent):
     def __init__(self, player):
         super().__init__(player)
+        self.model = "random/baseline-1.0"
 
-    def choose_action(self):
+    async def choose_action(self, timestep=None):
         available_actions = self.player.get_available_actions()
+        if not available_actions:
+            raise RuntimeError(f"No available actions for {self.player.name}")
         action = np.random.choice(available_actions)
         if action.name == "speak":
             message = "Hello, I am a crewmate."
@@ -273,7 +286,7 @@ class RandomAgent(Agent):
         return action
 
     def choose_observation_location(self, map):
-        return random.sample(map, 1)[0]
+        return random.choice(list(map))
 
 
 class HumanAgent(Agent):

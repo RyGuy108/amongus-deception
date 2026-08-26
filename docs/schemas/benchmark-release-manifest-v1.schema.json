@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:benchmark-release-manifest:v1",
+  "title": "Belief-grounded deception benchmark release manifest",
+  "type": "object",
+  "required": [
+    "schema_version", "release_id", "release_date", "source_revision",
+    "working_tree_dirty", "files", "datasets", "known_gates"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.benchmark-release-manifest.v1"},
+    "release_id": {"type": "string"},
+    "release_date": {"type": "string"},
+    "source_revision": {"type": ["string", "null"]},
+    "working_tree_dirty": {"type": "boolean"},
+    "files": {"type": "array"},
+    "datasets": {"type": "object"},
+    "known_gates": {"type": "object"}
+  }
+}

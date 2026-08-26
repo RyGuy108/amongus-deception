@@ -24,6 +24,12 @@ from amongagents.envs.map import Map, Spaceship
 from amongagents.envs.player import PLAYER_COLORS, Crewmate, Impostor
 from amongagents.envs.task import TaskAssignment
 from amongagents.envs.tools import GetBestPath
+from amongagents.envs.incentives import (
+    IncentiveScheduler,
+    apply_incentive_assignment,
+    append_outcome_report,
+    evaluate_incentive_outcomes,
+)
 
 # Set Flask environment variable to True by default
 if "FLASK" not in os.environ:
@@ -40,6 +46,11 @@ class AmongUs:
         interviewer=None,
         UI=None,
         game_index=0,
+        recorder=None,
+        belief_probe=None,
+        incentive_scheduler=None,
+        matched_incentive_runner=None,
+        counterfactual_runner=None,
     ):
         """
         include_human: bool
@@ -66,6 +77,18 @@ class AmongUs:
         self.interviewer = interviewer
         self.UI = UI
         self.game_index = game_index
+        self.recorder = recorder
+        self.belief_probe = belief_probe
+        self.incentive_scheduler = incentive_scheduler or IncentiveScheduler()
+        self.matched_incentive_runner = matched_incentive_runner
+        self.counterfactual_runner = counterfactual_runner
+        if self.belief_probe is not None and self.recorder is None:
+            raise ValueError("belief_probe requires a recorder to preserve measurement context")
+        if (
+            self.matched_incentive_runner is not None
+            or self.counterfactual_runner is not None
+        ) and self.recorder is None:
+            raise ValueError("causal experiment runners require a recorder")
         self.map = Map()
         self.players = []
         self.agents = {}
@@ -85,6 +108,9 @@ class AmongUs:
         self.all_phases = ["meeting", "task"]
         self.summary_json = {f"Game {game_index}": {"config": game_config}}
         self.list_of_impostors = []
+        self.incentive_assignments = {}
+        self.turn_records = []
+        self.ejected_players = []
 
     def initialize_game(self):
         # reset game state
@@ -101,6 +127,8 @@ class AmongUs:
         self.discussion_rounds_left = self.game_config["discussion_rounds"]
         self.votes = {}
         self.vote_info_one_round = {}
+        self.turn_records = []
+        self.ejected_players = []
 
         # game state
         self.current_phase = "task"
@@ -157,6 +185,12 @@ class AmongUs:
 
     def initialize_agents(self):
         random_idx = np.random.choice(len(self.players))
+        self.list_of_impostors = [
+            player.name for player in self.players if player.identity == "Impostor"
+        ]
+        self.incentive_assignments = self.incentive_scheduler.assign(
+            self.players, self.game_index
+        )
         if self.test:
             self.agents = [LLMHumanAgent(player) for player in self.players]
         else:
@@ -182,9 +216,8 @@ class AmongUs:
                 else:
                     self.agents.append(agent_dict[self.agent_config[player.identity]](player))
                     print(f"{i} Initializing player {player.name} with identity {player.identity} and LLM choice {self.agents[-1].model}")
-                if player.identity == "Impostor":
-                    self.list_of_impostors.append(player.name)
-                    
+                assignment = self.incentive_assignments[player.name]
+                apply_incentive_assignment(self.agents[-1], assignment)
                 # add to summary json
                 self.summary_json[f"Game {self.game_index}"]["Player " + str(i+1)] = {
                     "name": player.name,
@@ -193,6 +226,7 @@ class AmongUs:
                     "model": self.agents[-1].model,
                     "personality": player.personality,
                     "tasks": [task.name for task in player.tasks],
+                    "incentive": assignment.as_dict(),
                 }
 
     def report_winner(self, winner):
@@ -210,6 +244,13 @@ class AmongUs:
         # add to summary json
         self.summary_json[f"Game {self.game_index}"]["winner"] = winner
         self.summary_json[f"Game {self.game_index}"]["winner_reason"] = winner_reason_map[winner]
+        self.winner = winner
+        incentive_outcomes = evaluate_incentive_outcomes(self)
+        self.summary_json[f"Game {self.game_index}"]["incentive_outcomes"] = incentive_outcomes
+        append_outcome_report(
+            os.path.join(os.environ["EXPERIMENT_PATH"], "incentive-outcomes.jsonl"),
+            incentive_outcomes,
+        )
         # finally, append the summary json to the experiment path as a single line json
         summary_path = os.path.join(os.environ["EXPERIMENT_PATH"], "summary.json")
         with open(summary_path, "a") as f:
@@ -275,8 +316,53 @@ class AmongUs:
         if self.interviewer is not None:
             await self.interviewer.auto_question(self, agent)
 
+        # Capture the information boundary before the model or policy acts.
+        turn_context = (
+            self.recorder.capture_context(self, agent) if self.recorder else None
+        )
+        if self.belief_probe and self.belief_probe.should_probe(turn_context, agent):
+            private_belief = await self.belief_probe.measure(turn_context, agent)
+            turn_context["private_belief"] = private_belief
+            beliefs_about_others = private_belief.get("beliefs_about_others", {})
+            turn_context["other_agent_beliefs"] = {
+                "status": "collected" if beliefs_about_others else "not_reported",
+                "values": beliefs_about_others or None,
+            }
+        if (
+            self.matched_incentive_runner
+            and self.matched_incentive_runner.should_run(turn_context, agent)
+        ):
+            await self.matched_incentive_runner.run(
+                turn_context, agent, game_index=self.game_index
+            )
+
         # choose action
         action = await agent.choose_action(self.timestep)
+        if (
+            self.counterfactual_runner
+            and str(getattr(action, "name", "")).upper() == "SPEAK"
+            and getattr(action, "message", None)
+        ):
+            listener_contexts = []
+            for listener_agent in self.agents:
+                if (
+                    listener_agent is not agent
+                    and listener_agent.player.is_alive
+                    and callable(getattr(listener_agent, "send_request", None))
+                ):
+                    listener_contexts.append(
+                        (
+                            listener_agent,
+                            self.recorder.capture_context(self, listener_agent),
+                        )
+                    )
+            await self.counterfactual_runner.run(
+                turn_context,
+                agent,
+                listener_contexts,
+                action.message,
+                game_index=self.game_index,
+            )
         observation_location = ""
         if action.name == "ViewMonitor":
             observation_location = agent.choose_observation_location(
@@ -293,6 +379,15 @@ class AmongUs:
             self.record_activity(agent.player, action)
         agent.player.make_action(self, action, observation_location)
         self.update_map()
+        if self.recorder:
+            record = self.recorder.record_turn(
+                env=self,
+                agent=agent,
+                action=action,
+                context=turn_context,
+                observation_location=observation_location,
+            )
+            self.turn_records.append(record)
 
     async def game_step(self):
         if self.current_phase == "task":
@@ -366,6 +461,7 @@ class AmongUs:
         if len(players_with_max_votes) == 1:
             player = players_with_max_votes[0]
             player.is_alive = False
+            self.ejected_players.append(player.name)
             import_event = {
                 "timestep": self.timestep,
                 "phase": self.current_phase,

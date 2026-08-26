@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amongus:deception-taxonomy:v1",
+  "title": "Evidence-linked deception taxonomy annotation",
+  "type": "object",
+  "required": [
+    "schema_version", "record_type", "source", "speaker", "utterance",
+    "primary_category", "categories", "evidence_labels", "automatic_candidate",
+    "human_validation", "open_coding"
+  ],
+  "properties": {
+    "schema_version": {"const": "amongus.deception-taxonomy.v1"},
+    "record_type": {"const": "deception_taxonomy_annotation"},
+    "source": {"type": "object"},
+    "speaker": {"type": "object"},
+    "utterance": {"type": "string"},
+    "primary_category": {"type": "string"},
+    "categories": {"type": "array", "items": {"type": "string"}},
+    "evidence_labels": {"type": "array", "items": {"type": "object"}},
+    "automatic_candidate": {"const": true},
+    "human_validation": {"type": "object"},
+    "open_coding": {"type": "object"}
+  }
+}
